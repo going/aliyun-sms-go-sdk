@@ -26,8 +26,8 @@ type SmsParam struct {
 	Action           string
 	SignName         string
 	TemplateCode     string
-	RecNum           string
-	ParamString      string
+	PhoneNumbers     string
+	TemplateParam    string
 	Format           string
 	Version          string
 	AccessKeyId      string
@@ -62,20 +62,20 @@ func (this *SmsParam) GetTemplateCode() string {
 	return this.TemplateCode
 }
 
-func (this *SmsParam) SetRecNum(recnum string) {
-	this.RecNum = recnum
+func (this *SmsParam) SetPhoneNumbers(PhoneNumbers string) {
+	this.PhoneNumbers = PhoneNumbers
 }
 
-func (this *SmsParam) GetRecNum() string {
-	return this.RecNum
+func (this *SmsParam) GetPhoneNumbers() string {
+	return this.PhoneNumbers
 }
 
-func (this *SmsParam) SetParamString(paramstring string) {
-	this.ParamString = paramstring
+func (this *SmsParam) SetTemplateParam(TemplateParam string) {
+	this.TemplateParam = TemplateParam
 }
 
-func (this *SmsParam) GetParamString() string {
-	return this.ParamString
+func (this *SmsParam) GetTemplateParam() string {
+	return this.TemplateParam
 }
 
 func (this *SmsParam) SetFormat(format string) {
@@ -234,17 +234,17 @@ func (c *SMSClient) SetSocketTimeout(sockettimeout int) {
 }
 
 // 发送给多个手机号, 最多100个
-func (c *SMSClient) SendMulti(recnum []string, signname, templatecode, paramstring string) (e *ErrorMessage, err error) {
+func (c *SMSClient) SendMulti(PhoneNumbers []string, signname, templatecode, TemplateParam string) (e *ErrorMessage, err error) {
 	var body []byte
 
 	e = &ErrorMessage{}
-	if len(recnum) > 100 {
-		return nil, errors.New("number of recnum should be less than 100")
+	if len(PhoneNumbers) > 100 {
+		return nil, errors.New("number of PhoneNumbers should be less than 100")
 	}
 	c.Param.SetSignName(signname)
 	c.Param.SetTemplateCode(templatecode)
-	c.Param.SetParamString(paramstring)
-	c.Param.SetRecNum(strings.Join(recnum, ","))
+	c.Param.SetTemplateParam(TemplateParam)
+	c.Param.SetPhoneNumbers(strings.Join(PhoneNumbers, ","))
 	signature := signature_method(c.AccessKey, c.calc_string_to_sign())
 
 	req := urllib.Post(c.EndPoint)
@@ -288,14 +288,14 @@ func (c *SMSClient) SendMulti(recnum []string, signname, templatecode, paramstri
 }
 
 // 发送给一个手机号
-func (c *SMSClient) SendOne(recnum, signname, templatecode, paramstring string) (e *ErrorMessage, err error) {
+func (c *SMSClient) SendOne(PhoneNumbers, signname, templatecode, TemplateParam string) (e *ErrorMessage, err error) {
 	var body []byte
 
 	e = &ErrorMessage{}
 	c.Param.SetSignName(signname)
 	c.Param.SetTemplateCode(templatecode)
-	c.Param.SetParamString(paramstring)
-	c.Param.SetRecNum(recnum)
+	c.Param.SetTemplateParam(TemplateParam)
+	c.Param.SetPhoneNumbers(PhoneNumbers)
 	signature := signature_method(c.AccessKey, c.calc_string_to_sign())
 
 	req := urllib.Post(c.EndPoint)
@@ -346,8 +346,8 @@ func (c *SMSClient) calc_string_to_sign() string {
 	c.param["Action"] = c.Param.GetAction()
 	c.param["SignName"] = c.Param.GetSignName()
 	c.param["TemplateCode"] = c.Param.GetTemplateCode()
-	c.param["RecNum"] = c.Param.GetRecNum()
-	c.param["ParamString"] = c.Param.GetParamString()
+	c.param["PhoneNumbers"] = c.Param.GetPhoneNumbers()
+	c.param["TemplateParam"] = c.Param.GetTemplateParam()
 	c.param["Format"] = c.Param.GetFormat()
 	c.param["Version"] = c.Param.GetVersion()
 	c.param["AccessKeyId"] = c.Param.GetAccessKeyId()
@@ -361,11 +361,17 @@ func (c *SMSClient) calc_string_to_sign() string {
 	c.Param.SetSignatureNonce(c.param["SignatureNonce"])
 	c.param["RegionId"] = c.Param.GetRegionId()
 
+	var keys []string = make([]string, 0)
+	for key := range c.param {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
 	strslice := make([]string, len(c.param))
 	i := 0
-	for k, v := range c.param {
+	for _, k := range keys {
 		data := url.Values{}
-		data.Add(k, v)
+		data.Add(k, c.param[k])
 		strslice[i] = data.Encode()
 		strslice[i] = aliyun_sms_encode_over(strslice[i])
 		i++
@@ -407,17 +413,17 @@ func aliyun_sms_encode_over(s string) string {
 func New(accessid, accesskey string) (c *SMSClient) {
 	c = new(SMSClient)
 	if c.EndPoint == "" {
-		c.EndPoint = "https://sms.aliyuncs.com/"
+		c.EndPoint = "https://dysmsapi.aliyuncs.com"
 	}
 	c.AccessId = accessid
 	c.AccessKey = accesskey
-	c.Param.SetAction("SingleSendSms")
+	c.Param.SetAction("SendSms")
 	c.Param.SetSignName("your_signname")
 	c.Param.SetTemplateCode("your_templatecode")
-	c.Param.SetRecNum("your_recnum")
-	c.Param.SetParamString("your_paramstring")
+	c.Param.SetPhoneNumbers("your_PhoneNumbers")
+	c.Param.SetTemplateParam("your_TemplateParam")
 	c.Param.SetFormat("JSON")
-	c.Param.SetVersion("2016-09-27")
+	c.Param.SetVersion("2017-05-25")
 	c.Param.SetAccessKeyId(accessid)
 	c.Param.SetSignatureMethod("HMAC-SHA1")
 	c.Param.SetTimestamp(time.Now().UTC().Format(time.RFC3339))
