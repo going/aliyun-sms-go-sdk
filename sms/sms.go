@@ -361,22 +361,19 @@ func (c *SMSClient) calc_string_to_sign() string {
 	c.Param.SetSignatureNonce(c.param["SignatureNonce"])
 	c.param["RegionId"] = c.Param.GetRegionId()
 
-	var keys []string = make([]string, 0)
+	keys := make([]string, 0)
 	for key := range c.param {
 		keys = append(keys, key)
 	}
 	sort.Strings(keys)
 
-	strslice := make([]string, len(c.param))
-	i := 0
-	for _, k := range keys {
+	strslice := make([]string, len(keys))
+	for i, k := range keys {
 		data := url.Values{}
 		data.Add(k, c.param[k])
 		strslice[i] = data.Encode()
 		strslice[i] = aliyun_sms_encode_over(strslice[i])
-		i++
 	}
-	sort.Strings(strslice)
 	return "POST&" + percent_encode("/") + "&" + percent_encode(strings.Join(strslice, "&"))
 }
 
